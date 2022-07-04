@@ -1,0 +1,131 @@
+=====================================================================================================
+Task1:Need User details /user/getByEmail?/{emailId}/open
+
+usercontroller.java
+-------------------
+
+@GetMapping("/getByEmail/{emailId}")
+	public ResponseModel<UserDTO> getUserByEmailDet(@PathVariable String  emailId) {
+		return  ResponseModel.<UserDTO>builder().data(userService.getUserByEmail(currentUser().getEmail()))
+				.statusCode(JoulezConstants.SUCCESS_CODE).status(JoulezConstants.SUCCESS).build();
+	}
+
+
+userservice.java
+----------------
+public UserDTO getUserByEmail(String email) {
+		UserDTO user = modelMapper.map(userRepository.findByEmail(email), UserDTO.class);
+		return assignS3UrlProfilePic(user);
+	}
+
+
+userRepo.java 
+-------------
+
+User findByEmail(String email);
+
+====================================================================================================
+Task2:Need User details only having family details
+
+userfamilyController.java 
+-------------------------
+
+@GetMapping("/getEmergencyFamilyDetailsByUserId/{id}")
+	public ResponseModel<List<UserFamilyDTO>> getFamilyByUserId(@PathVariable int id) {
+		return ResponseModel.<List<UserFamilyDTO>>builder()
+				.data(userFamilyService.findEmergencyFamilyDetailsByUserId(id)).statusCode(JoulezConstants.SUCCESS_CODE)
+				.status(JoulezConstants.SUCCESS).build();
+	}
+
+userfamilyService.java
+----------------------
+
+public List<UserFamilyDTO> findEmergencyFamilyDetailsByUserId(Integer userId) {
+		List<UserFamily> userFamily = userFamilyRepo.findEmergencyFamilyDetailsByUserId(userId);
+		if (userFamily == null || userFamily.isEmpty()) {
+			throw new JoulezException(JoulezConstants.RESP_CODE__NO_USERFAMILY_FOUND, JoulezConstants.FAILED,
+					JoulezConstants.RESP_MESSAGE__NO_USERFAMILY_FOUND + userId);
+		}
+		return Arrays.asList(modelMapper.map(userFamily, UserFamilyDTO[].class));
+	}
+
+
+UserFamilyRepo.java 
+-------------------
+@Query(value = JoulezConstants.QUERY__EMERGENCY_FAMILY_DETAILS_BY_USER_ID, nativeQuery = true)
+	List<UserFamily> findEmergencyFamilyDetailsByUserId(@Param("userId") Integer userId);
+===================================================================================================
+Task3:Need User details those having license details
+----------------------------------------------------
+usercontroller(get user details by license number)
+ usercontroller.java
+--------------------
+
+@GetMapping("/getByLicense/{licensenumber}")
+	public ResponseModel<UserDTO> getUserByLicensedet(@PathVariable String licensenumber) {
+		return ResponseModel.<UserDTO>builder().data(userService.getUserByLicensedet(licensenumber))
+				.statusCode(JoulezConstants.SUCCESS_CODE).status(JoulezConstants.SUCCESS).build();
+	}
+
+------------------------------------------------------
+
+userservice.java 
+------------------
+
+public UserDTO getUserByLicensedet(String licenseNumber) {
+		
+	    LicenseDetail licenseList = licenseRepo.findByLicenseNumber(licenseNumber);
+		
+		if (licenseList == null) {
+			throw new JoulezException(JoulezConstants.RESP_CODE__LICENSE_NOT_FOUND, JoulezConstants.FAILED,
+					JoulezConstants.RESP_MESSAGE__LICENSE_NOT_FOUND +licenseNumber );
+		}
+		UserDTO user = modelMapper.map(
+				userRepository.findById(licenseList.getUserId())
+						.orElseThrow(() -> new JoulezException(JoulezConstants.RESP_CODE_USER_NOT_FOUND,
+								JoulezConstants.FAILED, JoulezConstants.RESP_MESSAGE_USER_NOT_FOUND + licenseList.getUserId())),
+				UserDTO.class);
+		return assignS3UrlProfilePic(user);
+		
+		}
+
+------------------------------
+
+LicenseDetailRepo.java
+
+
+	LicenseDetail findByLicenseNumber(String licenseNumber);
+
+====================================================================================================================
+Task4:Need user details those having email verified and mobile verified
+
+usercontroller.java
+
+@GetMapping("/getUserByEmailandMobilenumberVerified/{id}")
+	public ResponseEntity<UserDTO> getUserByEmailandMobilenumberVerified(@PathVariable int id) {
+		
+
+		return ResponseModel.<UserDTO>builder().data(userService.getUserByEmailandMobilenumberVerified(id)
+				.statusCode(JoulezConstants.SUCCESS_CODE).status(JoulezConstants.SUCCESS).build();
+	
+	}	
+
+userservice.java
+public UserDTO getUserByEmailandMobilenumberVerified(Integer id) {
+		
+    	   UserDTO user = modelMapper.map(userRepository.findById(id), UserDTO.class);
+    	   
+    	   if(!(user.getEmailVerified() && user.getMobileVerified())) {
+    		   
+    	     		 
+    		   throw new JoulezException(JoulezConstants.RESP_CODE__EMAIL_NOT_VERFIED, JoulezConstants.FAILED,
+    				   JoulezConstants.RESP_MESSAGE__EMAIL_NOT_VERFIED );
+    	   }
+		
+		return assignS3UrlProfilePic(user);
+		
+		}
+ 
+
+========================================================================================================
+
